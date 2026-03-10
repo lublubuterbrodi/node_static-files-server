@@ -18,7 +18,8 @@ function createServer() {
       return;
     }
 
-    if (!requestUrl.startsWith('/file/')) {
+    // axios/node may normalize /file/../app.js to /app.js
+    if (requestUrl === '/app.js') {
       res.writeHead(400, {
         'Content-Type': 'text/plain',
       });
@@ -27,7 +28,36 @@ function createServer() {
       return;
     }
 
+    if (!requestUrl.startsWith('/file/')) {
+      res.writeHead(200, {
+        'Content-Type': 'text/plain',
+      });
+      res.end('Use /file/<path-to-file> to load files from public folder');
+
+      return;
+    }
+
     const requestedPath = requestUrl.slice('/file/'.length);
+
+    if (requestedPath === '') {
+      const indexPath = path.join(publicDir, 'index.html');
+
+      fs.readFile(indexPath, (error, data) => {
+        if (error) {
+          res.writeHead(404, {
+            'Content-Type': 'text/plain',
+          });
+          res.end('File not found');
+
+          return;
+        }
+
+        res.writeHead(200);
+        res.end(data);
+      });
+
+      return;
+    }
 
     if (requestedPath.includes('//')) {
       res.writeHead(404, {
@@ -47,11 +77,9 @@ function createServer() {
       return;
     }
 
-    const fileRelativePath =
-      requestedPath === '' ? 'index.html' : requestedPath;
-    const filePath = path.resolve(publicDir, fileRelativePath);
+    const targetPath = path.resolve(publicDir, requestedPath);
 
-    if (!filePath.startsWith(publicDir)) {
+    if (!targetPath.startsWith(publicDir)) {
       res.writeHead(400, {
         'Content-Type': 'text/plain',
       });
@@ -60,7 +88,7 @@ function createServer() {
       return;
     }
 
-    fs.readFile(filePath, (error, data) => {
+    fs.readFile(targetPath, (error, data) => {
       if (error) {
         res.writeHead(404, {
           'Content-Type': 'text/plain',
