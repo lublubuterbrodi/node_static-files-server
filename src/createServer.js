@@ -9,11 +9,22 @@ function createServer() {
     const publicDir = path.resolve(__dirname, '../public');
     const requestUrl = req.url || '';
 
-    if (requestUrl === '/file') {
-      res.writeHead(200, {
-        'Content-Type': 'text/plain',
+    if (requestUrl === '/file' || requestUrl === '/file/') {
+      const indexPath = path.join(publicDir, 'index.html');
+
+      fs.readFile(indexPath, (error, data) => {
+        if (error) {
+          res.writeHead(404, {
+            'Content-Type': 'text/plain',
+          });
+          res.end('File not found');
+
+          return;
+        }
+
+        res.writeHead(200);
+        res.end(data);
       });
-      res.end('Use /file/<path-to-file> to load files from public folder');
 
       return;
     }
@@ -38,26 +49,6 @@ function createServer() {
     }
 
     const requestedPath = requestUrl.slice('/file/'.length);
-
-    if (requestedPath === '') {
-      const indexPath = path.join(publicDir, 'index.html');
-
-      fs.readFile(indexPath, (error, data) => {
-        if (error) {
-          res.writeHead(404, {
-            'Content-Type': 'text/plain',
-          });
-          res.end('File not found');
-
-          return;
-        }
-
-        res.writeHead(200);
-        res.end(data);
-      });
-
-      return;
-    }
 
     if (requestedPath.includes('//')) {
       res.writeHead(404, {
